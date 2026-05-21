@@ -1,0 +1,573 @@
+:root {
+  --expedia-navy: #00355F;
+  --expedia-navy-dark: #001F3D;
+  --expedia-navy-soft: #1F4D7A;
+  --expedia-yellow: #FFC94D;
+  --expedia-yellow-hover: #FFB930;
+  --expedia-blue: #1668E3;
+  --expedia-blue-hover: #0F4FBA;
+
+  --bg: #F2F4F7;
+  --surface: #FFFFFF;
+  --surface-alt: #F8FAFC;
+  --text: #1A1F36;
+  --text-muted: #5A6478;
+  --text-subtle: #8893A7;
+  --border: #DDE3EC;
+  --border-strong: #C2CBDA;
+
+  --success: #117A3D;
+  --danger: #B3261E;
+  --warning: #9A6A00;
+
+  --shadow-sm: 0 1px 2px rgba(0, 32, 64, 0.06), 0 1px 1px rgba(0, 32, 64, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 32, 64, 0.08), 0 2px 4px rgba(0, 32, 64, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 32, 64, 0.14), 0 4px 8px rgba(0, 32, 64, 0.06);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ---------- App layout ---------- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 28px;
+  background: var(--expedia-navy);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--expedia-yellow);
+  border-radius: 6px;
+  position: relative;
+  display: inline-block;
+}
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 6px 7px;
+  background: var(--expedia-navy);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.brand-sub {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.header-trip-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+.header-trip-meta .pill {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+}
+.header-trip-meta .user {
+  opacity: 0.85;
+}
+
+/* ---------- Destination search ---------- */
+.destination-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.destination-input-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+}
+
+.destination-input-wrap input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.destination-input-wrap input:focus {
+  border-color: var(--expedia-blue);
+  box-shadow: 0 0 0 3px rgba(22, 104, 227, 0.15);
+}
+.destination-input-wrap .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+.destination-current {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.destination-current strong { color: var(--text); }
+
+/* ---------- Category filter chips ---------- */
+.category-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.category-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.chip:hover { border-color: var(--expedia-blue); }
+.chip.on {
+  background: var(--expedia-navy);
+  color: #fff;
+  border-color: var(--expedia-navy);
+}
+.chip.on:hover { background: var(--expedia-navy-soft); border-color: var(--expedia-navy-soft); }
+.chip.off { opacity: 0.85; }
+.chip-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+}
+.chip-icon { font-size: 13px; line-height: 1; }
+.chip-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+}
+.chip.on .chip-count { background: rgba(255, 201, 77, 0.25); color: var(--expedia-yellow); }
+
+.category-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.category-actions button {
+  font-size: 12px;
+  color: var(--expedia-blue);
+  font-weight: 600;
+  padding: 4px 6px;
+}
+.category-actions button:hover { text-decoration: underline; }
+
+@media (max-width: 880px) {
+  .category-bar { padding: 8px 12px; }
+}
+
+/* ---------- Body layout: map + itinerary ---------- */
+.body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  min-height: 0;
+}
+
+.map-pane {
+  position: relative;
+  background: var(--surface-alt);
+  border-right: 1px solid var(--border);
+  min-height: 0;
+}
+
+.map-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+  padding: 32px;
+  text-align: center;
+}
+.map-empty .big {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.map-error {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  color: var(--danger);
+  z-index: 3;
+}
+
+/* ---------- InfoWindow / location card content ---------- */
+.loc-card {
+  font-family: inherit;
+  min-width: 240px;
+  max-width: 280px;
+  padding: 4px 2px 6px;
+}
+.loc-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.loc-card .loc-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+}
+.loc-card .loc-address {
+  font-size: 12px;
+  color: var(--text-subtle);
+  margin: 0 0 10px;
+}
+.loc-card .loc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: #EEF2F8;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+.tag.warning { background: #FFF4D9; color: var(--warning); }
+.tag.danger { background: #FCE7E5; color: var(--danger); }
+.tag.booked { background: #E0EEFF; color: var(--expedia-blue); }
+.tag.far { background: #F0EAFB; color: #6932C1; }
+
+/* ---------- Add / remove button ---------- */
+.btn-add {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s, transform 0.05s, color 0.15s;
+  border: 1px solid transparent;
+}
+.btn-add:active { transform: scale(0.98); }
+
+.btn-add.not-added {
+  background: var(--expedia-yellow);
+  color: var(--expedia-navy);
+}
+.btn-add.not-added:hover { background: var(--expedia-yellow-hover); }
+
+.btn-add.added {
+  background: #E6F4EC;
+  color: var(--success);
+  border-color: #B7DDC6;
+}
+.btn-add.added:hover { background: #D7ECDF; }
+
+.btn-add.saving {
+  background: #F2F4F7;
+  color: var(--text-muted);
+  cursor: progress;
+}
+
+.btn-add.failed {
+  background: #FCE7E5;
+  color: var(--danger);
+  border-color: #F1B6B1;
+}
+
+.btn-add[disabled] { cursor: not-allowed; opacity: 0.65; }
+
+.btn-add .spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-remove-inline {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: underline;
+  padding: 6px 0 0;
+}
+.btn-remove-inline:hover { color: var(--danger); }
+
+/* ---------- Itinerary panel ---------- */
+.itinerary-pane {
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.itinerary-head {
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.itinerary-head h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.itinerary-head .sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.itinerary-head .cap {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.itinerary-head .cap.full { color: var(--danger); font-weight: 600; }
+
+.itinerary-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 24px;
+}
+
+.itin-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.itin-item:hover { background: var(--surface-alt); border-color: var(--border); }
+
+.itin-item .num {
+  font-size: 12px;
+  color: var(--text-subtle);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: right;
+  margin-top: 2px;
+}
+
+.itin-item .info { flex: 1; min-width: 0; }
+.itin-item .info h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itin-item .info .cat {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+.itin-item .info .row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.itin-item .actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.itin-item .actions button {
+  font-size: 12px;
+  color: var(--danger);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+.itin-item .actions button:hover { background: #FBEFEE; }
+
+.itin-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.itin-empty .hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+/* ---------- Toast ---------- */
+.toast-wrap {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+}
+.toast {
+  background: var(--expedia-navy-dark);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: auto;
+  max-width: 360px;
+}
+.toast.danger { background: var(--danger); }
+.toast.warning { background: var(--warning); color: #fff; }
+
+/* ---------- Offline banner ---------- */
+.offline-banner {
+  background: #FFF4D9;
+  color: var(--warning);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-bottom: 1px solid #EFD78A;
+}
+
+/* ---------- Booked badge in itinerary ---------- */
+.booked-marker {
+  font-size: 11px;
+  color: var(--expedia-blue);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 880px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .itinerary-pane {
+    border-top: 1px solid var(--border);
+    max-height: 45vh;
+  }
+  .map-pane { border-right: none; }
+  .destination-bar { padding: 12px 16px; flex-wrap: wrap; }
+  .app-header { padding: 12px 16px; gap: 12px; }
+  .header-trip-meta { display: none; }
+  .brand-sub { display: none; }
+}
