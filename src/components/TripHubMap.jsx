@@ -41,7 +41,9 @@ export default function TripHubMap({
   const [selectedId, setSelectedId] = useState(null)
   const [discovered, setDiscovered] = useState([])
   const [discoveryCenter, setDiscoveryCenter] = useState(hotel?.coordinates || center)
-  const [activeCats, setActiveCats] = useState(() => new Set(CATEGORIES.map((c) => c.key)))
+  // Category filter: empty = show everything; otherwise show ONLY the selected
+  // categories (across discovered places AND itinerary pins).
+  const [selectedCats, setSelectedCats] = useState(() => new Set())
   const searchRef = useRef(null)
 
   const onLoad = useCallback((m) => setMap(m), [])
@@ -116,13 +118,16 @@ export default function TripHubMap({
     }
   }, [map, discoveryCenter])
 
+  const passesFilter = useCallback(
+    (category) => selectedCats.size === 0 || selectedCats.has(categoryGroup(category)),
+    [selectedCats]
+  )
+
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
   const discoveredVisible = useMemo(
     () =>
-      discovered.filter(
-        (p) => !tripIds.has(p.locationId) && activeCats.has(categoryGroup(p.category))
-      ),
-    [discovered, tripIds, activeCats]
+      discovered.filter((p) => !tripIds.has(p.locationId) && passesFilter(p.category)),
+    [discovered, tripIds, passesFilter]
   )
 
   const focusedStops = useMemo(() => {
@@ -175,7 +180,7 @@ export default function TripHubMap({
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
   const toggleCat = (key) =>
-    setActiveCats((prev) => {
+    setSelectedCats((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
@@ -196,7 +201,7 @@ export default function TripHubMap({
           {CATEGORIES.map((c) => (
             <button
               key={c.key}
-              className={`cat-chip ${activeCats.has(c.key) ? 'on' : ''}`}
+              className={`cat-chip ${selectedCats.has(c.key) ? 'on' : ''}`}
               onClick={() => toggleCat(c.key)}
               title={c.label}
             >
@@ -233,6 +238,7 @@ export default function TripHubMap({
 
         {places.map((p) => {
           if (!p.coordinates) return null
+          if (!passesFilter(p.category)) return null
           const isPlace = p.type === 'place'
           const inFocus = focusedDay && focusedIndex.has(p.locationId)
           const dim = focusedDay && !inFocus
