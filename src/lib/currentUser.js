@@ -3,10 +3,10 @@
 // Itineraries are keyed by userId so the "users can only add to their own
 // itinerary" rule is enforced by the mock API rejecting writes for any other userId.
 export const CURRENT_USER = {
-  userId: 'u_prakhar',
-  name: 'Prakhar',
-  initials: 'P',
+  userId: 'u_nora',
+  name: 'Nora',
+  initials: 'N',
   tier: 'Blue tier',
   oneKeyCash: '$15.00',
-  email: 'prakhar@example.com'
+  email: 'nora@example.com'
 }

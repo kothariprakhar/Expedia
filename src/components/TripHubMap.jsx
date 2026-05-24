@@ -1,22 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  GoogleMap,
-  InfoWindow,
-  OverlayView,
-  OverlayViewF,
-  Polyline
-} from '@react-google-maps/api'
-import { categoryEmoji, ratingLabel } from '../lib/placeMeta.js'
+import { GoogleMap, InfoWindow, OverlayView, OverlayViewF } from '@react-google-maps/api'
+import { categoryEmoji, ratingLabel, CATEGORIES, categoryGroup } from '../lib/placeMeta.js'
 
 const MAP_STYLE = [
   { featureType: 'poi', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] }
 ]
-const SCHEDULED_COLOR = '#1668E3'
 
 const DISCOVER_TYPES = ['restaurant', 'cafe', 'tourist_attraction', 'museum', 'bar', 'park']
 const PER_TYPE = 4
-
 const PIN_OFFSET = () => ({ x: 0, y: 0 })
 
 // Premium "value pill" map marker: a category icon + rating, styled by status.
@@ -48,23 +40,50 @@ export default function TripHubMap({
   const [map, setMap] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [discovered, setDiscovered] = useState([])
-  const discoveredOnce = useRef(false)
+  const [discoveryCenter, setDiscoveryCenter] = useState(hotel?.coordinates || center)
+  const [activeCats, setActiveCats] = useState(() => new Set(CATEGORIES.map((c) => c.key)))
+  const searchRef = useRef(null)
 
   const onLoad = useCallback((m) => setMap(m), [])
 
+  // Wire the search box to Google Places Autocomplete → recenter + rediscover.
   useEffect(() => {
-    if (!map || !window.google || discoveredOnce.current) return
-    discoveredOnce.current = true
+    if (!map || !window.google || !searchRef.current) return
+    const ac = new window.google.maps.places.Autocomplete(searchRef.current, {
+      fields: ['geometry', 'name']
+    })
+    const listener = ac.addListener('place_changed', () => {
+      const place = ac.getPlace()
+      if (!place.geometry?.location) return
+      const loc = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      }
+      setSelectedId(null)
+      setDiscoveryCenter(loc)
+      map.panTo(loc)
+      map.setZoom(14)
+    })
+    return () => listener.remove()
+  }, [map])
+
+  // Discover nearby non-partner places around the current discovery center.
+  useEffect(() => {
+    if (!map || !window.google || !discoveryCenter) return
     const svc = new window.google.maps.places.PlacesService(map)
-    const origin = hotel?.coordinates || center
     const run = (type) =>
       new Promise((resolve) => {
-        svc.nearbySearch({ location: origin, radius: 2000, type }, (results, status) => {
-          const ok = status === window.google.maps.places.PlacesServiceStatus.OK
-          resolve(ok && results ? results.slice(0, PER_TYPE) : [])
-        })
+        svc.nearbySearch(
+          { location: discoveryCenter, radius: 2200, type },
+          (results, status) => {
+            const ok = status === window.google.maps.places.PlacesServiceStatus.OK
+            resolve(ok && results ? results.slice(0, PER_TYPE) : [])
+          }
+        )
       })
+    let cancelled = false
     Promise.all(DISCOVER_TYPES.map(run)).then((batches) => {
+      if (cancelled) return
       const seen = new Set()
       const out = []
       for (const batch of batches) {
@@ -86,21 +105,24 @@ export default function TripHubMap({
             reviews: r.user_ratings_total ?? null,
             address: r.vicinity || '',
             image,
-            coordinates: {
-              lat: r.geometry.location.lat(),
-              lng: r.geometry.location.lng()
-            }
+            coordinates: { lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }
           })
         }
       }
       setDiscovered(out)
     })
-  }, [map, hotel, center])
+    return () => {
+      cancelled = true
+    }
+  }, [map, discoveryCenter])
 
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
   const discoveredVisible = useMemo(
-    () => discovered.filter((p) => !tripIds.has(p.locationId)),
-    [discovered, tripIds]
+    () =>
+      discovered.filter(
+        (p) => !tripIds.has(p.locationId) && activeCats.has(categoryGroup(p.category))
+      ),
+    [discovered, tripIds, activeCats]
   )
 
   const focusedStops = useMemo(() => {
@@ -119,6 +141,7 @@ export default function TripHubMap({
     return m
   }, [focusedStops])
 
+  // Fit to the focused day's stops, or the whole trip. (Search pans manually.)
   useEffect(() => {
     if (!map || !window.google) return
     const pts = []
@@ -149,15 +172,41 @@ export default function TripHubMap({
     return all.find((p) => p.locationId === selectedId) || null
   }, [places, discovered, selectedId])
 
-  const routePath = useMemo(
-    () => focusedStops.map((s) => s.coordinates).filter(Boolean),
-    [focusedStops]
-  )
-
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
+
+  const toggleCat = (key) =>
+    setActiveCats((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   return (
     <div className="map-pane">
+      <div className="map-top">
+        <div className="map-search">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          <input ref={searchRef} type="text" placeholder="Search a place or address" />
+        </div>
+        <div className="map-cats">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              className={`cat-chip ${activeCats.has(c.key) ? 'on' : ''}`}
+              onClick={() => toggleCat(c.key)}
+              title={c.label}
+            >
+              <span className="cat-emoji">{c.emoji}</span>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <GoogleMap
         mapContainerStyle={{ width: '100%', height: '100%' }}
         center={center}
@@ -171,25 +220,6 @@ export default function TripHubMap({
           styles: MAP_STYLE
         }}
       >
-        {routePath.length > 1 && (
-          <Polyline
-            path={routePath}
-            options={{
-              strokeColor: SCHEDULED_COLOR,
-              strokeOpacity: 0.9,
-              strokeWeight: 3,
-              icons: [
-                {
-                  icon: { path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2.4 },
-                  offset: '100%',
-                  repeat: '120px'
-                }
-              ]
-            }}
-          />
-        )}
-
-        {/* Discovered (non-partner) places */}
         {discoveredVisible.map((p) => (
           <MapPin
             key={p.locationId}
@@ -201,7 +231,6 @@ export default function TripHubMap({
           />
         ))}
 
-        {/* Trip places */}
         {places.map((p) => {
           if (!p.coordinates) return null
           const isPlace = p.type === 'place'

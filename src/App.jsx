@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useJsApiLoader } from '@react-google-maps/api'
 import {
   DndContext,
@@ -32,9 +32,30 @@ export default function App() {
   const [tab, setTab] = useState('itinerary')
   const [focusedDay, setFocusedDay] = useState(null)
   const [activeId, setActiveId] = useState(null)
+  const [leftWidth, setLeftWidth] = useState(540)
 
   const days = useMemo(() => getTripDays(), [])
   const trip = useTrip()
+
+  // Drag-to-resize the planning column / map split.
+  const bodyRef = useRef(null)
+  const resizingRef = useRef(false)
+  const onResizeDown = (e) => {
+    resizingRef.current = true
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  const onResizeMove = (e) => {
+    if (!resizingRef.current || !bodyRef.current) return
+    const rect = bodyRef.current.getBoundingClientRect()
+    const w = Math.min(Math.max(e.clientX - rect.left, 380), rect.width - 360)
+    setLeftWidth(w)
+    window.dispatchEvent(new Event('resize')) // keep the map filling its pane
+  }
+  const onResizeUp = (e) => {
+    resizingRef.current = false
+    e.currentTarget.releasePointerCapture?.(e.pointerId)
+    window.dispatchEvent(new Event('resize'))
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -92,7 +113,7 @@ export default function App() {
   return (
     <div className="app">
       <TopNav />
-      <div className="body">
+      <div className="body" ref={bodyRef} style={{ '--plan-w': `${leftWidth}px` }}>
         <div className="plan-col">
           <TripHeader onReset={trip.reset} />
           <TripTabs active={tab} counts={counts} onChange={setTab} />
@@ -139,13 +160,14 @@ export default function App() {
         </div>
 
         <div className="map-wrap">
-          <div className="map-search">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-            Find a location to pin
-          </div>
+          <div
+            className="col-resizer"
+            onPointerDown={onResizeDown}
+            onPointerMove={onResizeMove}
+            onPointerUp={onResizeUp}
+            role="separator"
+            aria-label="Resize map"
+          />
           {loadError ? (
             <div className="map-pane">
               <div className="map-empty">

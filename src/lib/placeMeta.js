@@ -31,3 +31,19 @@ export function ratingLabel(place) {
   if (place.rating == null) return null
   return place.type === 'place' ? `★ ${place.rating.toFixed(1)}` : place.rating.toFixed(1)
 }
+
+// High-level categories for the map's category selector.
+export const CATEGORIES = [
+  { key: 'restaurant', label: 'Restaurants', emoji: '🍴', re: /restaurant|food|dining|meal/i },
+  { key: 'cafe', label: 'Cafés', emoji: '☕', re: /cafe|coffee|bakery/i },
+  { key: 'bar', label: 'Bars & nightlife', emoji: '🍸', re: /bar|pub|wine|tapas|club|night/i },
+  { key: 'museum', label: 'Museums', emoji: '🏛️', re: /museum|gallery|art/i },
+  { key: 'park', label: 'Parks', emoji: '🌳', re: /park|garden/i },
+  { key: 'sight', label: 'Sights', emoji: '📸', re: /attraction|landmark|sight|tourist|monument|view|point/i }
+]
+
+// Which selector group a place falls into (defaults to 'sight').
+export function categoryGroup(category = '') {
+  for (const c of CATEGORIES) if (c.re.test(category)) return c.key
+  return 'sight'
+}

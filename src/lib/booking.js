@@ -3,13 +3,13 @@
 // here it's hardcoded so the prototype always opens onto a concrete trip.
 
 export const BOOKING = {
-  tripId: 'trip_bcn_2026',
-  city: 'Barcelona',
-  country: 'Spain',
-  hotelName: 'Hotel Arts Barcelona',
+  tripId: 'trip_chi_2026',
+  city: 'Chicago',
+  country: 'USA',
+  hotelName: 'The Langham, Chicago',
   // City + hotel coordinates (hotel is the "home base" anchor on the map).
-  cityCoords: { lat: 41.3874, lng: 2.1686 },
-  hotelCoords: { lat: 41.3859, lng: 2.1969 },
+  cityCoords: { lat: 41.8781, lng: -87.6298 },
+  hotelCoords: { lat: 41.8887, lng: -87.6266 },
   checkIn: '2026-06-12', // Friday
   checkOut: '2026-06-16', // Tuesday (4 nights)
   travelers: 2,
