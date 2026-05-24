@@ -1,75 +1,48 @@
-// Simulated backend for the MVE.
-// Persists per-user itineraries in localStorage and adds a small network delay
-// so optimistic-update behavior is visible in the demo.
-// The 25-item cap is enforced HERE (server-side) as well as in the UI, per the spec.
+// Mock "backend" for the prototype: persists the whole trip (saved + scheduled
+// places) in localStorage and seeds a realistic trip on first run. No network,
+// no auth — just a storage seam so the UI logic stays backend-agnostic.
 
-export const ITINERARY_CAP = 25
-const STORAGE_PREFIX = 'triphub:itinerary:'
-const LATENCY_MS = 350
-// Set >0 to simulate occasional save failures for demoing the "save failed" state.
-const FAILURE_RATE = 0
+import { SEED_ITINERARY, SEED_SAVED } from './seed.js'
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+export const ITINERARY_CAP = 30
+const STORAGE_PREFIX = 'triphub:v2:'
 
 function storageKey(userId) {
   return STORAGE_PREFIX + userId
 }
 
-function readRaw(userId) {
+function seedItems() {
+  const scheduled = SEED_ITINERARY.map((p) => ({ ...p, status: 'scheduled' }))
+  const saved = SEED_SAVED.map((p) => ({ ...p, status: 'saved' }))
+  return [...scheduled, ...saved]
+}
+
+// Returns the persisted trip, seeding it the first time the user opens the app.
+export function loadTrip(userId) {
   try {
     const raw = localStorage.getItem(storageKey(userId))
-    return raw ? JSON.parse(raw) : []
+    if (raw) return JSON.parse(raw)
   } catch {
-    return []
+    /* fall through to seed */
+  }
+  const seeded = seedItems()
+  saveTrip(userId, seeded)
+  return seeded
+}
+
+export function saveTrip(userId, items) {
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(items))
+  } catch {
+    /* storage full / unavailable — non-fatal for a prototype */
   }
 }
 
-function writeRaw(userId, items) {
-  localStorage.setItem(storageKey(userId), JSON.stringify(items))
-}
-
-export async function loadItinerary(userId) {
-  await sleep(LATENCY_MS)
-  return readRaw(userId)
-}
-
-// item shape: { locationId, name, category, coordinates: {lat,lng}, address,
-//               source, addedAt, isBookedStay, permanentlyClosed, isFarFromStay }
-export async function addLocation(userId, item, requestingUserId) {
-  if (requestingUserId !== userId) {
-    const err = new Error('You can only add to your own itinerary.')
-    err.code = 'FORBIDDEN'
-    throw err
+// Wipe persisted state so the next load re-seeds (used by the demo-reset button).
+export function resetTrip(userId) {
+  try {
+    localStorage.removeItem(storageKey(userId))
+  } catch {
+    /* ignore */
   }
-  await sleep(LATENCY_MS)
-  if (Math.random() < FAILURE_RATE) {
-    const err = new Error('Network error')
-    err.code = 'NETWORK'
-    throw err
-  }
-  const items = readRaw(userId)
-  // Dedup — same locationId resolves to existing entry, not a new one.
-  const existing = items.find((i) => i.locationId === item.locationId)
-  if (existing) return items
-  if (items.length >= ITINERARY_CAP) {
-    const err = new Error('Your itinerary is full. Remove something to add more.')
-    err.code = 'CAP_REACHED'
-    throw err
-  }
-  const next = [{ ...item, addedAt: Date.now() }, ...items]
-  writeRaw(userId, next)
-  return next
-}
-
-export async function removeLocation(userId, locationId, requestingUserId) {
-  if (requestingUserId !== userId) {
-    const err = new Error('You can only modify your own itinerary.')
-    err.code = 'FORBIDDEN'
-    throw err
-  }
-  await sleep(LATENCY_MS)
-  const items = readRaw(userId)
-  const next = items.filter((i) => i.locationId !== locationId)
-  writeRaw(userId, next)
-  return next
 }

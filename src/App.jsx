@@ -1,13 +1,24 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useJsApiLoader } from '@react-google-maps/api'
-import Header from './components/Header.jsx'
-import DestinationSearch from './components/DestinationSearch.jsx'
-import TripHubMap, { SEARCH_TYPES } from './components/TripHubMap.jsx'
-import ItineraryList from './components/ItineraryList.jsx'
-import CategoryFilter from './components/CategoryFilter.jsx'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
+import TopNav from './components/TopNav.jsx'
+import TripHeader from './components/TripHeader.jsx'
+import TripTabs from './components/TripTabs.jsx'
+import DayGroup from './components/DayGroup.jsx'
+import SavedShelf from './components/SavedShelf.jsx'
+import ActivityCard from './components/ActivityCard.jsx'
+import TripHubMap from './components/TripHubMap.jsx'
 import Toast from './components/Toast.jsx'
-import { useItinerary } from './hooks/useItinerary.js'
-import { useOnlineStatus } from './hooks/useOnlineStatus.js'
+import { useTrip } from './hooks/useTrip.js'
+import { BOOKING, getTripDays, formatDateRange } from './lib/booking.js'
 
 const GOOGLE_LIBRARIES = ['places']
 
@@ -18,99 +29,164 @@ export default function App() {
     libraries: GOOGLE_LIBRARIES
   })
 
-  const [destination, setDestination] = useState(null)
-  const [places, setPlaces] = useState([])
-  const [activeCategories, setActiveCategories] = useState(
-    () => new Set(SEARCH_TYPES)
+  const [tab, setTab] = useState('itinerary')
+  const [focusedDay, setFocusedDay] = useState(null)
+  const [activeId, setActiveId] = useState(null)
+
+  const days = useMemo(() => getTripDays(), [])
+  const trip = useTrip()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   )
-  const online = useOnlineStatus()
-  const itin = useItinerary()
 
-  // Place counts by source category, for the filter chip labels.
-  const placeCounts = useMemo(() => {
-    const counts = Object.fromEntries(SEARCH_TYPES.map((t) => [t, 0]))
-    for (const p of places) {
-      if (p.searchType && counts[p.searchType] != null) counts[p.searchType] += 1
-    }
-    return counts
-  }, [places])
-
-  const toggleCategory = useCallback((cat) => {
-    setActiveCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(cat)) next.delete(cat)
-      else next.add(cat)
-      return next
-    })
-  }, [])
-
-  const selectAll = useCallback(() => setActiveCategories(new Set(SEARCH_TYPES)), [])
-  const selectNone = useCallback(() => setActiveCategories(new Set()), [])
-
-  if (!apiKey) {
-    return <MissingKeyScreen />
+  const counts = {
+    itinerary: trip.scheduled.length,
+    bookings: 1,
+    saves: trip.saved.length
   }
+
+  const handleSchedule = (place) => {
+    const dayId = focusedDay || days[0].id
+    trip.schedulePlace(place.locationId, dayId)
+    setTab('itinerary')
+  }
+
+  const activeItem = useMemo(
+    () => trip.items.find((i) => i.locationId === activeId) || null,
+    [trip.items, activeId]
+  )
+
+  const handleDragEnd = (event) => {
+    setActiveId(null)
+    const { active, over } = event
+    if (!over) return
+    const a = active.data.current || {}
+    const o = over.data.current || {}
+
+    if (a.type === 'saved') {
+      // Drop a saved place onto a day (or any stop within it) → schedule it.
+      if (o.dayId) {
+        trip.schedulePlace(active.id, o.dayId)
+        if (focusedDay) setFocusedDay(o.dayId)
+      }
+    } else if (a.type === 'stop') {
+      // Reorder within the same day.
+      if (o.dayId === a.dayId && o.type === 'stop' && active.id !== over.id) {
+        const ids = (trip.itemsByDay[a.dayId] || []).map((i) => i.locationId)
+        const oldIndex = ids.indexOf(active.id)
+        const newIndex = ids.indexOf(over.id)
+        if (oldIndex !== -1 && newIndex !== -1) {
+          trip.reorderDay(a.dayId, arrayMove(ids, oldIndex, newIndex))
+        }
+      }
+    }
+  }
+
+  const mapPlaces = useMemo(
+    () => [...trip.scheduled, ...trip.saved],
+    [trip.scheduled, trip.saved]
+  )
+
+  if (!apiKey) return <MissingKeyScreen />
 
   return (
     <div className="app">
-      <Header destination={destination} count={itin.items.length} cap={itin.cap} />
-      {!online && (
-        <div className="offline-banner">
-          You're offline. Try again when you're connected.
-        </div>
-      )}
-      <DestinationSearch
-        mapsReady={mapsReady}
-        destination={destination}
-        onSelect={setDestination}
-      />
-      {destination && (
-        <CategoryFilter
-          counts={placeCounts}
-          active={activeCategories}
-          onToggle={toggleCategory}
-          onSelectAll={selectAll}
-          onSelectNone={selectNone}
-        />
-      )}
+      <TopNav />
       <div className="body">
-        {loadError ? (
-          <div className="map-pane">
-            <div className="map-empty">
-              <div className="big">Map failed to load</div>
-              <div>Check your API key and reload.</div>
-            </div>
+        <div className="plan-col">
+          <TripHeader onReset={trip.reset} />
+          <TripTabs active={tab} counts={counts} onChange={setTab} />
+          <div className="plan-scroll">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={(e) => setActiveId(e.active.id)}
+              onDragEnd={handleDragEnd}
+              onDragCancel={() => setActiveId(null)}
+            >
+              {tab === 'itinerary' && (
+                <>
+                  {days.map((d) => (
+                    <DayGroup
+                      key={d.id}
+                      day={d}
+                      items={trip.itemsByDay[d.id] || []}
+                      focused={focusedDay === d.id}
+                      onFocus={(id) => setFocusedDay((cur) => (cur === id ? null : id))}
+                      onRemove={trip.removePlace}
+                    />
+                  ))}
+                  <SavedShelf items={trip.saved} onAdd={handleSchedule} />
+                </>
+              )}
+              {tab === 'saves' && <SavedShelf items={trip.saved} onAdd={handleSchedule} />}
+              {tab === 'bookings' && <BookingsTab />}
+
+              <DragOverlay>
+                {activeItem ? (
+                  <div className="drag-overlay">
+                    <ActivityCard
+                      place={activeItem}
+                      variant={activeItem.status === 'saved' ? 'saved' : 'plan'}
+                    />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
-        ) : !mapsReady ? (
-          <div className="map-pane">
-            <div className="map-empty">
-              <div className="big">Loading map…</div>
-            </div>
+        </div>
+
+        <div className="map-wrap">
+          <div className="map-search">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            Find a location to pin
           </div>
-        ) : (
-          <TripHubMap
-            destination={destination}
-            itinerary={itin.items}
-            loadState={itin.loadState}
-            pending={itin.pending}
-            isAdded={itin.isAdded}
-            full={itin.full}
-            activeCategories={activeCategories}
-            onAdd={online ? itin.add : () => {/* offline: noop, banner explains */}}
-            onRemove={itin.remove}
-            onRetry={itin.retry}
-            onPlacesUpdate={setPlaces}
-          />
-        )}
-        <ItineraryList
-          items={itin.items}
-          loadState={itin.loadState}
-          cap={itin.cap}
-          full={itin.full}
-          onRemove={itin.remove}
-        />
+          {loadError ? (
+            <div className="map-pane">
+              <div className="map-empty">
+                <div className="big">Map failed to load</div>
+                <div>Check your API key and reload.</div>
+              </div>
+            </div>
+          ) : !mapsReady ? (
+            <div className="map-pane">
+              <div className="map-empty"><div className="big">Loading map…</div></div>
+            </div>
+          ) : (
+            <TripHubMap
+              center={BOOKING.cityCoords}
+              hotel={{ name: BOOKING.hotelName, coordinates: BOOKING.hotelCoords }}
+              places={mapPlaces}
+              focusedDay={focusedDay}
+              onSave={trip.savePlace}
+            />
+          )}
+        </div>
       </div>
-      <Toast toast={itin.toast} />
+      <Toast toast={trip.toast} />
+    </div>
+  )
+}
+
+function BookingsTab() {
+  return (
+    <div className="bookings-tab">
+      <div className="booking-card">
+        <span className="b-icon" aria-hidden>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 10h18M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M4 10v8M20 10v8M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <div>
+          <h4>{BOOKING.hotelName}</h4>
+          <p>{formatDateRange(BOOKING)}</p>
+          <p>{BOOKING.travelers} travelers · {BOOKING.rooms} room</p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -118,7 +194,7 @@ export default function App() {
 function MissingKeyScreen() {
   return (
     <div className="app">
-      <Header destination={null} count={0} cap={25} />
+      <TopNav />
       <div className="body" style={{ gridTemplateColumns: '1fr' }}>
         <div className="map-pane">
           <div className="map-empty">
