@@ -408,6 +408,47 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px; color: var(--danger); z-index: 3;
 }
 
+/* ---- Value-pill map markers ---- */
+.map-pin {
+  transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px 4px 7px;
+  background: #fff;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  box-shadow: 0 2px 6px rgba(20, 30, 60, 0.2);
+  font: 700 12px/1 var(--font);
+  color: var(--ink);
+  white-space: nowrap; cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.map-pin:hover { transform: translate(-50%, -50%) scale(1.1); box-shadow: var(--shadow-md); z-index: 6; }
+.map-pin .pin-emoji { font-size: 13px; line-height: 1; }
+.map-pin .pin-rating { font-weight: 700; }
+.map-pin .pin-num {
+  display: inline-grid; place-items: center;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.28);
+  font-size: 11px; font-weight: 800;
+}
+.map-pin.discovered {
+  font-weight: 600; color: var(--ink-2);
+  box-shadow: 0 1px 4px rgba(20, 30, 60, 0.18);
+}
+.map-pin.saved { border-color: var(--gold); }
+.map-pin.scheduled { border-color: var(--blue); }
+.map-pin.focused { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: var(--shadow-md); }
+.map-pin.hotel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.map-pin.dim { opacity: 0.45; }
+.map-pin.dim:hover { opacity: 1; }
+.map-pin.experience::after {
+  content: ''; position: absolute; top: -3px; right: -3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--blue); border: 1.5px solid #fff;
+}
+.map-pin.experience { position: relative; }
+.map-pin.experience.focused::after { background: var(--gold); }
+
 /* ---- Map InfoWindow card ---- */
 .loc-card { font-family: var(--font); min-width: 220px; max-width: 280px; padding: 2px; }
 .loc-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--ink); }
