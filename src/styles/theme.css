@@ -555,14 +555,13 @@ a { color: inherit; text-decoration: none; }
 .map-pin.hotel { background: var(--ink); color: #fff; border-color: var(--ink); }
 .map-pin.dim { opacity: 0.45; }
 .map-pin.dim:hover { opacity: 1; }
-/* Hover sync: itinerary card hover highlights its pin in a distinct colour */
+/* Hover sync: itinerary card hover highlights its pin in light orange */
 .map-pin.highlight {
-  background: var(--highlight) !important;
-  border-color: var(--highlight-dark) !important;
-  color: #fff !important;
+  background: #FFE2D0 !important;
+  border-color: var(--highlight) !important;
+  color: var(--highlight-dark) !important;
   opacity: 1 !important;
-  transform: translate(-50%, -50%) scale(1.28);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   z-index: 12;
 }
 .map-pin.experience::after {
