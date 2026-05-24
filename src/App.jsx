@@ -135,6 +135,7 @@ export default function App() {
                       focused={focusedDay === d.id}
                       onFocus={(id) => setFocusedDay((cur) => (cur === id ? null : id))}
                       onRemove={trip.removePlace}
+                      onSetTime={trip.setTime}
                     />
                   ))}
                   <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />
