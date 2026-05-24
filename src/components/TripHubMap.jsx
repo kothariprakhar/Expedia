@@ -19,14 +19,20 @@ const CAT_TYPE = {
 const PER_CATEGORY = 20 // fetch a generous set per selected category
 const PIN_OFFSET = () => ({ x: 0, y: 0 })
 
-function MapPin({ place, className, emoji, rating, number, onClick }) {
+function MapPin({ place, className, emoji, rating, number, onOpen, onClose }) {
   return (
     <OverlayViewF
       position={place.coordinates}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
       getPixelPositionOffset={PIN_OFFSET}
     >
-      <button className={`map-pin ${className}`} onClick={onClick} title={place.name}>
+      <button
+        className={`map-pin ${className}`}
+        onMouseEnter={onOpen}
+        onMouseLeave={onClose}
+        onClick={onOpen}
+        title={place.name}
+      >
         {number != null && <span className="pin-num">{number}</span>}
         <span className="pin-emoji">{emoji}</span>
         {number == null && rating && <span className="pin-rating">{rating}</span>}
@@ -48,6 +54,7 @@ export default function TripHubMap({
 }) {
   const [map, setMap] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
+  const closeTimer = useRef(null)
   const [discoveryCenter, setDiscoveryCenter] = useState(hotel?.coordinates || center)
   // Discovery is opt-in: nothing extra shows until a category is selected.
   const [selectedCats, setSelectedCats] = useState(() => new Set())
@@ -56,6 +63,21 @@ export default function TripHubMap({
   const searchRef = useRef(null)
 
   const onLoad = useCallback((m) => setMap(m), [])
+
+  // Hover-to-open with a small close delay, so the cursor can travel from the
+  // pin into the card to use its buttons without it vanishing.
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+  }, [])
+  const openPin = useCallback((id) => {
+    cancelClose()
+    setSelectedId(id)
+  }, [cancelClose])
+  const scheduleClose = useCallback(() => {
+    cancelClose()
+    closeTimer.current = setTimeout(() => setSelectedId(null), 180)
+  }, [cancelClose])
+  useEffect(() => () => cancelClose(), [cancelClose])
 
   // Focusing a day is its own mode: clear any category selection so only that
   // day's stops remain on the map.
@@ -231,6 +253,7 @@ export default function TripHubMap({
         center={center}
         zoom={13}
         onLoad={onLoad}
+        onClick={() => setSelectedId(null)}
         options={{
           clickableIcons: false,
           streetViewControl: false,
@@ -246,7 +269,8 @@ export default function TripHubMap({
             className={`place discovered ${hoveredId === p.locationId ? 'highlight' : ''}`}
             emoji={categoryEmoji(p.category)}
             rating={ratingLabel(p)}
-            onClick={() => setSelectedId(p.locationId)}
+            onOpen={() => openPin(p.locationId)}
+            onClose={scheduleClose}
           />
         ))}
 
@@ -271,7 +295,8 @@ export default function TripHubMap({
               emoji={categoryEmoji(p.category)}
               rating={ratingLabel(p)}
               number={inFocus ? focusedIndex.get(p.locationId) : null}
-              onClick={() => setSelectedId(p.locationId)}
+              onOpen={() => openPin(p.locationId)}
+              onClose={scheduleClose}
             />
           )
         })}
@@ -282,7 +307,8 @@ export default function TripHubMap({
             className={`hotel ${hoveredId === '__hotel__' ? 'highlight' : ''}`}
             emoji="🛏️"
             rating="Stay"
-            onClick={() => setSelectedId('__hotel__')}
+            onOpen={() => openPin('__hotel__')}
+            onClose={scheduleClose}
           />
         )}
 
@@ -292,7 +318,7 @@ export default function TripHubMap({
             onCloseClick={() => setSelectedId(null)}
             options={{ pixelOffset: new window.google.maps.Size(0, -16) }}
           >
-            <div className="loc-card">
+            <div className="loc-card" onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
               <h3>{selected.name}</h3>
               <p className="loc-meta">
                 {selected.category}
