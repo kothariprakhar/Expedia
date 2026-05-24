@@ -161,8 +161,13 @@ export default function App() {
               center={BOOKING.cityCoords}
               hotel={{ name: BOOKING.hotelName, coordinates: BOOKING.hotelCoords }}
               places={mapPlaces}
+              days={days}
               focusedDay={focusedDay}
-              onSave={trip.savePlace}
+              onAddToDay={(place, dayId) => {
+                trip.addToDay(place, dayId)
+                setFocusedDay(dayId)
+              }}
+              onSaveForLater={trip.savePlace}
             />
           )}
         </div>

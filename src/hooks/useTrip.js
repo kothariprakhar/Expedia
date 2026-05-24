@@ -106,6 +106,39 @@ export function useTrip() {
     [nextTimeForDay, pushToast]
   )
 
+  // Frictionless one-step add: place a (possibly brand-new) place directly onto
+  // a day, whether it's discovered, saved, or already scheduled elsewhere.
+  const addToDay = useCallback(
+    (place, dayId, timeMins) => {
+      setItems((prev) => {
+        const dayStops = prev.filter(
+          (i) => i.status === 'scheduled' && i.dayId === dayId
+        )
+        const t =
+          timeMins ??
+          (dayStops.length
+            ? Math.min(
+                Math.max(...dayStops.map((i) => i.timeMins ?? DEFAULT_START)) + STEP,
+                LATEST
+              )
+            : DEFAULT_START)
+        const exists = prev.some((i) => i.locationId === place.locationId)
+        if (!exists && prev.length >= ITINERARY_CAP) {
+          pushToast('Your trip is full. Remove something first.', 'warning')
+          return prev
+        }
+        pushToast('Added to your itinerary')
+        const scheduled = { status: 'scheduled', dayId, timeMins: t, order: Date.now() }
+        return exists
+          ? prev.map((i) =>
+              i.locationId === place.locationId ? { ...i, ...scheduled } : i
+            )
+          : [...prev, { ...place, ...scheduled }]
+      })
+    },
+    [pushToast]
+  )
+
   const unschedulePlace = useCallback(
     (locationId) => {
       setItems((prev) =>
@@ -165,6 +198,7 @@ export function useTrip() {
     savePlace,
     removePlace,
     schedulePlace,
+    addToDay,
     unschedulePlace,
     setTime,
     reorderDay,

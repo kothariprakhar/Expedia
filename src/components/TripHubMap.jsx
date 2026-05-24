@@ -36,7 +36,15 @@ function MapPin({ place, className, emoji, rating, number, onClick }) {
   )
 }
 
-export default function TripHubMap({ center, hotel, places = [], focusedDay = null, onSave }) {
+export default function TripHubMap({
+  center,
+  hotel,
+  places = [],
+  days = [],
+  focusedDay = null,
+  onAddToDay,
+  onSaveForLater
+}) {
   const [map, setMap] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [discovered, setDiscovered] = useState([])
@@ -248,20 +256,37 @@ export default function TripHubMap({ center, hotel, places = [], focusedDay = nu
                   {selected.reviews != null && ` · ${selected.reviews.toLocaleString()} reviews`}
                 </p>
               )}
-              {selectedInTrip ? (
-                <span className={`tag ${selected.status === 'scheduled' ? 'booked' : ''}`}>
-                  {selected.status === 'scheduled' ? 'On your itinerary' : 'Saved to trip'}
-                </span>
+              {selected.status === 'scheduled' ? (
+                <span className="tag booked">On your itinerary</span>
               ) : (
-                <button
-                  className="btn-add not-added"
-                  onClick={() => {
-                    onSave?.(selected)
-                    setSelectedId(null)
-                  }}
-                >
-                  + Save to trip
-                </button>
+                <div className="loc-add">
+                  <div className="loc-add-label">Add to a day</div>
+                  <div className="loc-day-chips">
+                    {days.map((d) => (
+                      <button
+                        key={d.id}
+                        className="day-chip"
+                        onClick={() => {
+                          onAddToDay?.(selected, d.id)
+                          setSelectedId(null)
+                        }}
+                      >
+                        {d.weekday} {d.dayNum}
+                      </button>
+                    ))}
+                  </div>
+                  {!selectedInTrip && (
+                    <button
+                      className="loc-save-later"
+                      onClick={() => {
+                        onSaveForLater?.(selected)
+                        setSelectedId(null)
+                      }}
+                    >
+                      Save for later
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </InfoWindow>
