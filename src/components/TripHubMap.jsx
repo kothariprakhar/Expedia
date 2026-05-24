@@ -79,12 +79,6 @@ export default function TripHubMap({
   }, [cancelClose])
   useEffect(() => () => cancelClose(), [cancelClose])
 
-  // Focusing a day is its own mode: clear any category selection so only that
-  // day's stops remain on the map.
-  useEffect(() => {
-    if (focusedDay) setSelectedCats(new Set())
-  }, [focusedDay])
-
   const centerKey = `${discoveryCenter.lat.toFixed(4)},${discoveryCenter.lng.toFixed(4)}`
 
   // Search box → recenter discovery + map.
@@ -148,9 +142,7 @@ export default function TripHubMap({
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
 
   // Union of the selected categories' results (deduped, excluding the trip).
-  // Hidden entirely while a day is focused.
   const discoveredVisible = useMemo(() => {
-    if (focusedDay) return []
     const seen = new Set()
     const out = []
     selectedCats.forEach((cat) => {
@@ -162,7 +154,7 @@ export default function TripHubMap({
       }
     })
     return out
-  }, [focusedDay, selectedCats, discoveredByCat, centerKey, tripIds])
+  }, [selectedCats, discoveredByCat, centerKey, tripIds])
 
   const focusedStops = useMemo(() => {
     if (!focusedDay) return []
@@ -183,13 +175,8 @@ export default function TripHubMap({
   useEffect(() => {
     if (!map || !window.google) return
     const pts = []
-    if (focusedDay && focusedStops.length) {
-      focusedStops.forEach((s) => s.coordinates && pts.push(s.coordinates))
-      if (hotel?.coordinates) pts.push(hotel.coordinates)
-    } else {
-      places.forEach((p) => p.coordinates && pts.push(p.coordinates))
-      if (hotel?.coordinates) pts.push(hotel.coordinates)
-    }
+    places.forEach((p) => p.coordinates && pts.push(p.coordinates))
+    if (hotel?.coordinates) pts.push(hotel.coordinates)
     if (pts.length === 0) {
       map.setCenter(center)
       map.setZoom(13)
@@ -203,7 +190,7 @@ export default function TripHubMap({
     const bounds = new window.google.maps.LatLngBounds()
     pts.forEach((pt) => bounds.extend(pt))
     map.fitBounds(bounds, 90)
-  }, [map, places, hotel, center, focusedDay, focusedStops])
+  }, [map, places, hotel, center])
 
   const selected = useMemo(() => {
     const all = [...places, ...discoveredVisible]
@@ -212,16 +199,13 @@ export default function TripHubMap({
 
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
-  const toggleCat = (key) => {
-    // Selecting a category exits day-focus mode (the two are mutually exclusive).
-    if (focusedDay) onClearFocus?.()
+  const toggleCat = (key) =>
     setSelectedCats((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
       return next
     })
-  }
 
   return (
     <div className="map-pane">
@@ -277,8 +261,6 @@ export default function TripHubMap({
         {places.map((p) => {
           if (!p.coordinates) return null
           const inFocus = focusedDay && focusedIndex.has(p.locationId)
-          // In day-focus mode, show only that day's stops.
-          if (focusedDay && !inFocus) return null
           const isPlace = p.type === 'place'
           const status = p.status === 'scheduled' ? 'scheduled' : 'saved'
           const cls = [
