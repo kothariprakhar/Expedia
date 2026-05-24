@@ -1,12 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import ActivityCard from './ActivityCard.jsx'
 
-// "Saved things to do" — the holding area of unscheduled places and the drag
-// source for the day planner. Each card can be dragged onto a day, or added
-// with the "+" button (schedules into the focused day / day 1).
-export default function SavedShelf({ items, onAdd }) {
+// "Saved things to do" — the wishlist / drag source for the day planner.
+// Each card can be dragged onto a day, or its "+" opens a day picker to add it
+// directly (matching the map popup's frictionless flow).
+export default function SavedShelf({ items, days = [], onAddToDay }) {
   return (
     <section className="saved-shelf">
       <div className="saved-head">
@@ -20,7 +20,7 @@ export default function SavedShelf({ items, onAdd }) {
       ) : (
         <div className="saved-grid">
           {items.map((p) => (
-            <DraggableSaved key={p.locationId} place={p} onAdd={onAdd} />
+            <DraggableSaved key={p.locationId} place={p} days={days} onAddToDay={onAddToDay} />
           ))}
         </div>
       )}
@@ -28,7 +28,8 @@ export default function SavedShelf({ items, onAdd }) {
   )
 }
 
-function DraggableSaved({ place, onAdd }) {
+function DraggableSaved({ place, days, onAddToDay }) {
+  const [open, setOpen] = useState(false)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: place.locationId,
     data: { type: 'saved' }
@@ -38,13 +39,32 @@ function DraggableSaved({ place, onAdd }) {
     opacity: isDragging ? 0.4 : 1
   }
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className="saved-card">
       <ActivityCard
         place={place}
         variant="saved"
-        onAdd={onAdd}
+        onAdd={() => setOpen((o) => !o)}
         dragHandle={{ attributes, listeners }}
       />
+      {open && (
+        <div className="day-pop">
+          <div className="day-pop-label">Add to a day</div>
+          <div className="loc-day-chips">
+            {days.map((d) => (
+              <button
+                key={d.id}
+                className="day-chip"
+                onClick={() => {
+                  onAddToDay?.(place, d.id)
+                  setOpen(false)
+                }}
+              >
+                {d.weekday} {d.dayNum}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

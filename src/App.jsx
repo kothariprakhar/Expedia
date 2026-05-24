@@ -46,10 +46,9 @@ export default function App() {
     saves: trip.saved.length
   }
 
-  const handleSchedule = (place) => {
-    const dayId = focusedDay || days[0].id
-    trip.schedulePlace(place.locationId, dayId)
-    setTab('itinerary')
+  const handleAddToDay = (place, dayId) => {
+    trip.addToDay(place, dayId)
+    setFocusedDay(dayId)
   }
 
   const activeItem = useMemo(
@@ -117,10 +116,12 @@ export default function App() {
                       onRemove={trip.removePlace}
                     />
                   ))}
-                  <SavedShelf items={trip.saved} onAdd={handleSchedule} />
+                  <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />
                 </>
               )}
-              {tab === 'saves' && <SavedShelf items={trip.saved} onAdd={handleSchedule} />}
+              {tab === 'saves' && (
+                <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />
+              )}}
               {tab === 'bookings' && <BookingsTab />}
 
               <DragOverlay>
@@ -163,10 +164,7 @@ export default function App() {
               places={mapPlaces}
               days={days}
               focusedDay={focusedDay}
-              onAddToDay={(place, dayId) => {
-                trip.addToDay(place, dayId)
-                setFocusedDay(dayId)
-              }}
+              onAddToDay={handleAddToDay}
               onSaveForLater={trip.savePlace}
             />
           )}
