@@ -11,7 +11,17 @@ import { formatTime } from '../lib/time.js'
 
 // One date section of the itinerary: a date header and a droppable list of
 // time-stamped, reorderable stops. Saved cards can be dropped here to schedule.
-export default function DayGroup({ day, items, focused, onFocus, onRemove, onSetTime }) {
+export default function DayGroup({
+  day,
+  items,
+  focused,
+  onFocus,
+  onRemove,
+  onSetTime,
+  checkIn,
+  checkOut,
+  hotelName
+}) {
   const ids = items.map((i) => i.locationId)
   const { setNodeRef, isOver } = useDroppable({
     id: `day:${day.id}`,
@@ -20,14 +30,26 @@ export default function DayGroup({ day, items, focused, onFocus, onRemove, onSet
 
   return (
     <section className={`day-group ${focused ? 'focused' : ''}`}>
-      <button className="day-date" onClick={() => onFocus?.(day.id)}>
+      <button
+        className="day-date"
+        onClick={() => onFocus?.(day.id)}
+        title={focused ? 'Hide on map' : 'Show this day on the map'}
+      >
         <span className="day-date-label">{day.label}</span>
         <span className="day-date-count">
           {items.length} {items.length === 1 ? 'stop' : 'stops'}
         </span>
+        <span className="day-map-hint">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" stroke="currentColor" strokeWidth="1.8" />
+            <circle cx="12" cy="11" r="2" fill="currentColor" />
+          </svg>
+          {focused ? 'Showing on map' : 'View on map'}
+        </span>
       </button>
 
       <div ref={setNodeRef} className={`day-items ${isOver ? 'drop-over' : ''}`}>
+        {checkIn && <HotelRow kind="Check-in" time="Morning" hotelName={hotelName} />}
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           {items.map((item, idx) => (
             <SortableStop
@@ -39,11 +61,32 @@ export default function DayGroup({ day, items, focused, onFocus, onRemove, onSet
             />
           ))}
         </SortableContext>
-        {items.length === 0 && (
+        {items.length === 0 && !checkIn && !checkOut && (
           <div className="day-empty">No plans yet — drag a saved place here.</div>
         )}
+        {checkOut && <HotelRow kind="Check-out" time="11:00am" hotelName={hotelName} />}
       </div>
     </section>
+  )
+}
+
+// Fixed hotel check-in / check-out marker — not draggable or removable.
+function HotelRow({ kind, time, hotelName }) {
+  return (
+    <div className="plan-row">
+      <div className="plan-time hotel-time">{time}</div>
+      <div className="hotel-row">
+        <span className="hotel-row-icon" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 21V5l9-2 9 2v16M3 21h18M9 9h.01M15 9h.01M9 13h.01M15 13h.01M10 21v-4h4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <div className="hotel-row-info">
+          <h4>{kind}</h4>
+          <div className="hotel-row-sub">{hotelName}</div>
+        </div>
+      </div>
+    </div>
   )
 }
 

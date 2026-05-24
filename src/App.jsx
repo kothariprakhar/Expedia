@@ -3,8 +3,9 @@ import { useJsApiLoader } from '@react-google-maps/api'
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
-  closestCorners,
+  closestCenter,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -58,7 +59,7 @@ export default function App() {
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   )
 
   const counts = {
@@ -120,14 +121,15 @@ export default function App() {
           <div className="plan-scroll">
             <DndContext
               sensors={sensors}
-              collisionDetection={closestCorners}
+              collisionDetection={closestCenter}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
               onDragStart={(e) => setActiveId(e.active.id)}
               onDragEnd={handleDragEnd}
               onDragCancel={() => setActiveId(null)}
             >
               {tab === 'itinerary' && (
                 <>
-                  {days.map((d) => (
+                  {days.map((d, i) => (
                     <DayGroup
                       key={d.id}
                       day={d}
@@ -136,6 +138,9 @@ export default function App() {
                       onFocus={(id) => setFocusedDay((cur) => (cur === id ? null : id))}
                       onRemove={trip.removePlace}
                       onSetTime={trip.setTime}
+                      checkIn={i === 0}
+                      checkOut={i === days.length - 1}
+                      hotelName={BOOKING.hotelName}
                     />
                   ))}
                   <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />

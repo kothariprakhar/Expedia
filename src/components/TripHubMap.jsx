@@ -1,17 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GoogleMap, InfoWindow, OverlayView, OverlayViewF } from '@react-google-maps/api'
-import { categoryEmoji, ratingLabel, CATEGORIES, categoryGroup } from '../lib/placeMeta.js'
+import { categoryEmoji, ratingLabel, CATEGORIES } from '../lib/placeMeta.js'
 
 const MAP_STYLE = [
   { featureType: 'poi', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] }
 ]
 
-const DISCOVER_TYPES = ['restaurant', 'cafe', 'tourist_attraction', 'museum', 'bar', 'park']
-const PER_TYPE = 4
+// Google Places type fetched per category chip.
+const CAT_TYPE = {
+  restaurant: 'restaurant',
+  cafe: 'cafe',
+  bar: 'bar',
+  museum: 'museum',
+  park: 'park',
+  sight: 'tourist_attraction'
+}
+const PER_CATEGORY = 20 // fetch a generous set per selected category
 const PIN_OFFSET = () => ({ x: 0, y: 0 })
 
-// Premium "value pill" map marker: a category icon + rating, styled by status.
 function MapPin({ place, className, emoji, rating, number, onClick }) {
   return (
     <OverlayViewF
@@ -39,16 +46,18 @@ export default function TripHubMap({
 }) {
   const [map, setMap] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
-  const [discovered, setDiscovered] = useState([])
   const [discoveryCenter, setDiscoveryCenter] = useState(hotel?.coordinates || center)
-  // Category filter: empty = show everything; otherwise show ONLY the selected
-  // categories (across discovered places AND itinerary pins).
+  // Discovery is opt-in: nothing extra shows until a category is selected.
   const [selectedCats, setSelectedCats] = useState(() => new Set())
+  const [discoveredByCat, setDiscoveredByCat] = useState({})
+  const fetchedRef = useRef({})
   const searchRef = useRef(null)
 
   const onLoad = useCallback((m) => setMap(m), [])
 
-  // Wire the search box to Google Places Autocomplete → recenter + rediscover.
+  const centerKey = `${discoveryCenter.lat.toFixed(4)},${discoveryCenter.lng.toFixed(4)}`
+
+  // Search box → recenter discovery + map.
   useEffect(() => {
     if (!map || !window.google || !searchRef.current) return
     const ac = new window.google.maps.places.Autocomplete(searchRef.current, {
@@ -57,10 +66,7 @@ export default function TripHubMap({
     const listener = ac.addListener('place_changed', () => {
       const place = ac.getPlace()
       if (!place.geometry?.location) return
-      const loc = {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng()
-      }
+      const loc = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }
       setSelectedId(null)
       setDiscoveryCenter(loc)
       map.panTo(loc)
@@ -69,66 +75,62 @@ export default function TripHubMap({
     return () => listener.remove()
   }, [map])
 
-  // Discover nearby non-partner places around the current discovery center.
+  // Fetch places only for the categories the user has selected (on demand).
   useEffect(() => {
-    if (!map || !window.google || !discoveryCenter) return
+    if (!map || !window.google || selectedCats.size === 0) return
     const svc = new window.google.maps.places.PlacesService(map)
-    const run = (type) =>
-      new Promise((resolve) => {
-        svc.nearbySearch(
-          { location: discoveryCenter, radius: 2200, type },
-          (results, status) => {
-            const ok = status === window.google.maps.places.PlacesServiceStatus.OK
-            resolve(ok && results ? results.slice(0, PER_TYPE) : [])
-          }
-        )
-      })
-    let cancelled = false
-    Promise.all(DISCOVER_TYPES.map(run)).then((batches) => {
-      if (cancelled) return
-      const seen = new Set()
-      const out = []
-      for (const batch of batches) {
-        for (const r of batch) {
-          if (!r.place_id || seen.has(r.place_id) || !r.geometry?.location) continue
-          seen.add(r.place_id)
-          let image = null
-          try {
-            image = r.photos?.[0]?.getUrl({ maxWidth: 400, maxHeight: 300 }) || null
-          } catch {
-            image = null
-          }
-          out.push({
-            locationId: r.place_id,
-            name: r.name || 'Place',
-            category: prettyCategory(r.types),
-            type: 'place',
-            rating: r.rating ?? null,
-            reviews: r.user_ratings_total ?? null,
-            address: r.vicinity || '',
-            image,
-            coordinates: { lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }
+    selectedCats.forEach((cat) => {
+      const fk = `${centerKey}|${cat}`
+      if (fetchedRef.current[fk]) return
+      fetchedRef.current[fk] = true
+      svc.nearbySearch(
+        { location: discoveryCenter, radius: 3000, type: CAT_TYPE[cat] },
+        (results, status) => {
+          const ok = status === window.google.maps.places.PlacesServiceStatus.OK
+          const norm = (ok && results ? results : []).slice(0, PER_CATEGORY).flatMap((r) => {
+            if (!r.place_id || !r.geometry?.location) return []
+            let image = null
+            try {
+              image = r.photos?.[0]?.getUrl({ maxWidth: 400, maxHeight: 300 }) || null
+            } catch {
+              image = null
+            }
+            return [
+              {
+                locationId: r.place_id,
+                name: r.name || 'Place',
+                category: prettyCategory(r.types),
+                type: 'place',
+                rating: r.rating ?? null,
+                reviews: r.user_ratings_total ?? null,
+                address: r.vicinity || '',
+                image,
+                coordinates: { lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }
+              }
+            ]
           })
+          setDiscoveredByCat((prev) => ({ ...prev, [fk]: norm }))
         }
-      }
-      setDiscovered(out)
+      )
     })
-    return () => {
-      cancelled = true
-    }
-  }, [map, discoveryCenter])
-
-  const passesFilter = useCallback(
-    (category) => selectedCats.size === 0 || selectedCats.has(categoryGroup(category)),
-    [selectedCats]
-  )
+  }, [map, selectedCats, centerKey, discoveryCenter])
 
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
-  const discoveredVisible = useMemo(
-    () =>
-      discovered.filter((p) => !tripIds.has(p.locationId) && passesFilter(p.category)),
-    [discovered, tripIds, passesFilter]
-  )
+
+  // Union of the selected categories' results (deduped, excluding the trip).
+  const discoveredVisible = useMemo(() => {
+    const seen = new Set()
+    const out = []
+    selectedCats.forEach((cat) => {
+      const arr = discoveredByCat[`${centerKey}|${cat}`] || []
+      for (const p of arr) {
+        if (tripIds.has(p.locationId) || seen.has(p.locationId)) continue
+        seen.add(p.locationId)
+        out.push(p)
+      }
+    })
+    return out
+  }, [selectedCats, discoveredByCat, centerKey, tripIds])
 
   const focusedStops = useMemo(() => {
     if (!focusedDay) return []
@@ -146,7 +148,6 @@ export default function TripHubMap({
     return m
   }, [focusedStops])
 
-  // Fit to the focused day's stops, or the whole trip. (Search pans manually.)
   useEffect(() => {
     if (!map || !window.google) return
     const pts = []
@@ -173,9 +174,9 @@ export default function TripHubMap({
   }, [map, places, hotel, center, focusedDay, focusedStops])
 
   const selected = useMemo(() => {
-    const all = [...places, ...discovered]
+    const all = [...places, ...discoveredVisible]
     return all.find((p) => p.locationId === selectedId) || null
-  }, [places, discovered, selectedId])
+  }, [places, discoveredVisible, selectedId])
 
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
@@ -203,7 +204,7 @@ export default function TripHubMap({
               key={c.key}
               className={`cat-chip ${selectedCats.has(c.key) ? 'on' : ''}`}
               onClick={() => toggleCat(c.key)}
-              title={c.label}
+              title={`Show ${c.label}`}
             >
               <span className="cat-emoji">{c.emoji}</span>
               {c.label}
@@ -238,7 +239,6 @@ export default function TripHubMap({
 
         {places.map((p) => {
           if (!p.coordinates) return null
-          if (!passesFilter(p.category)) return null
           const isPlace = p.type === 'place'
           const inFocus = focusedDay && focusedIndex.has(p.locationId)
           const dim = focusedDay && !inFocus

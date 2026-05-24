@@ -196,12 +196,42 @@ a { color: inherit; text-decoration: none; }
 .day-group { padding: 22px 0 6px; border-bottom: 1px solid var(--border); }
 .day-group:last-of-type { border-bottom: none; }
 .day-date {
-  display: flex; align-items: baseline; gap: 12px;
-  width: 100%; padding: 0 0 14px; text-align: left;
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 6px 8px 14px 0; text-align: left;
+  border-radius: var(--r-sm);
 }
 .day-date-label { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
 .day-date-count { font-size: 13px; color: var(--muted); }
 .day-group.focused .day-date-label { color: var(--blue); }
+
+/* "View on map" affordance on the date */
+.day-map-hint {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--blue);
+  background: var(--blue-soft);
+  padding: 5px 10px; border-radius: var(--r-pill);
+  opacity: 0.85; transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.day-date:hover .day-map-hint { opacity: 1; }
+.day-group.focused .day-map-hint { background: var(--blue); color: #fff; opacity: 1; }
+
+/* Hotel check-in / check-out rows */
+.hotel-time { color: var(--muted) !important; font-size: 12px; }
+.hotel-row {
+  flex: 1; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--blue-soft);
+  border: 1px dashed #B9D2F6;
+  border-radius: var(--r-lg);
+}
+.hotel-row-icon {
+  width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+  background: #fff; color: var(--blue);
+  display: grid; place-items: center;
+}
+.hotel-row-info h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
+.hotel-row-sub { font-size: 13px; color: var(--ink-2); }
 
 .day-empty {
   border: 1px dashed var(--border-strong);
