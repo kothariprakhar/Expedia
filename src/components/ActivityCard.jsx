@@ -10,10 +10,12 @@ export default function ActivityCard({
   variant = 'plan',
   onAdd, // saved shelf: schedule this place
   onRemove, // itinerary: remove this stop
-  dragHandle // optional { attributes, listeners } from dnd-kit
+  dragHandle, // optional { attributes, listeners } from dnd-kit
+  imageOverride // a fetched, relevant photo URL (falls back to place.image)
 }) {
   const tags = place.tags || {}
   const isExperience = place.type !== 'place'
+  const imageSrc = imageOverride || place.image
 
   return (
     <article className={`ac ac-${variant}`}>
@@ -32,9 +34,9 @@ export default function ActivityCard({
         </button>
       )}
       <div className="ac-img">
-        {place.image ? (
+        {imageSrc ? (
           <img
-            src={place.image}
+            src={imageSrc}
             alt=""
             loading="lazy"
             onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}

@@ -18,6 +18,8 @@ export default function DayGroup({
   onFocus,
   onRemove,
   onSetTime,
+  onHover,
+  photos = {},
   checkIn,
   checkOut,
   hotelName
@@ -49,7 +51,7 @@ export default function DayGroup({
       </button>
 
       <div ref={setNodeRef} className={`day-items ${isOver ? 'drop-over' : ''}`}>
-        {checkIn && <HotelRow kind="Check-in" time="Morning" hotelName={hotelName} />}
+        {checkIn && <HotelRow kind="Check-in" time="Morning" hotelName={hotelName} onHover={onHover} />}
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           {items.map((item, idx) => (
             <SortableStop
@@ -58,22 +60,28 @@ export default function DayGroup({
               index={idx}
               onRemove={onRemove}
               onSetTime={onSetTime}
+              onHover={onHover}
+              imageOverride={photos[item.locationId]}
             />
           ))}
         </SortableContext>
         {items.length === 0 && !checkIn && !checkOut && (
           <div className="day-empty">No plans yet — drag a saved place here.</div>
         )}
-        {checkOut && <HotelRow kind="Check-out" time="11:00am" hotelName={hotelName} />}
+        {checkOut && <HotelRow kind="Check-out" time="11:00am" hotelName={hotelName} onHover={onHover} />}
       </div>
     </section>
   )
 }
 
 // Fixed hotel check-in / check-out marker — not draggable or removable.
-function HotelRow({ kind, time, hotelName }) {
+function HotelRow({ kind, time, hotelName, onHover }) {
   return (
-    <div className="plan-row">
+    <div
+      className="plan-row"
+      onMouseEnter={() => onHover?.('__hotel__')}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <div className="plan-time hotel-time">{time}</div>
       <div className="hotel-row">
         <span className="hotel-row-icon" aria-hidden>
@@ -90,7 +98,7 @@ function HotelRow({ kind, time, hotelName }) {
   )
 }
 
-function SortableStop({ item, index, onRemove, onSetTime }) {
+function SortableStop({ item, index, onRemove, onSetTime, onHover, imageOverride }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.locationId, data: { type: 'stop', dayId: item.dayId } })
 
@@ -101,7 +109,13 @@ function SortableStop({ item, index, onRemove, onSetTime }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="plan-row">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="plan-row"
+      onMouseEnter={() => onHover?.(item.locationId)}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <TimeEditor
         mins={item.timeMins}
         onChange={(m) => onSetTime?.(item.locationId, m)}
@@ -111,6 +125,7 @@ function SortableStop({ item, index, onRemove, onSetTime }) {
         number={index + 1}
         onRemove={onRemove}
         dragHandle={{ attributes, listeners }}
+        imageOverride={imageOverride}
       />
     </div>
   )

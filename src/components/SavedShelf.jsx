@@ -6,7 +6,7 @@ import ActivityCard from './ActivityCard.jsx'
 // "Saved things to do" — the wishlist / drag source for the day planner.
 // Each card can be dragged onto a day, or its "+" opens a day picker to add it
 // directly (matching the map popup's frictionless flow).
-export default function SavedShelf({ items, days = [], onAddToDay }) {
+export default function SavedShelf({ items, days = [], photos = {}, onAddToDay }) {
   return (
     <section className="saved-shelf">
       <div className="saved-head">
@@ -20,7 +20,13 @@ export default function SavedShelf({ items, days = [], onAddToDay }) {
       ) : (
         <div className="saved-grid">
           {items.map((p) => (
-            <DraggableSaved key={p.locationId} place={p} days={days} onAddToDay={onAddToDay} />
+            <DraggableSaved
+              key={p.locationId}
+              place={p}
+              days={days}
+              imageOverride={photos[p.locationId]}
+              onAddToDay={onAddToDay}
+            />
           ))}
         </div>
       )}
@@ -28,7 +34,7 @@ export default function SavedShelf({ items, days = [], onAddToDay }) {
   )
 }
 
-function DraggableSaved({ place, days, onAddToDay }) {
+function DraggableSaved({ place, days, imageOverride, onAddToDay }) {
   const [open, setOpen] = useState(false)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: place.locationId,
@@ -45,6 +51,7 @@ function DraggableSaved({ place, days, onAddToDay }) {
         variant="saved"
         onAdd={() => setOpen((o) => !o)}
         dragHandle={{ attributes, listeners }}
+        imageOverride={imageOverride}
       />
       {open && (
         <div className="day-pop">

@@ -19,6 +19,7 @@ import ActivityCard from './components/ActivityCard.jsx'
 import TripHubMap from './components/TripHubMap.jsx'
 import Toast from './components/Toast.jsx'
 import { useTrip } from './hooks/useTrip.js'
+import { usePlacePhotos } from './hooks/usePlacePhotos.js'
 import { BOOKING, getTripDays, formatDateRange } from './lib/booking.js'
 
 const GOOGLE_LIBRARIES = ['places']
@@ -33,10 +34,12 @@ export default function App() {
   const [tab, setTab] = useState('itinerary')
   const [focusedDay, setFocusedDay] = useState(null)
   const [activeId, setActiveId] = useState(null)
+  const [hoveredId, setHoveredId] = useState(null)
   const [leftWidth, setLeftWidth] = useState(540)
 
   const days = useMemo(() => getTripDays(), [])
   const trip = useTrip()
+  const photos = usePlacePhotos(trip.items, mapsReady, BOOKING.city)
 
   // Drag-to-resize the planning column / map split.
   const bodyRef = useRef(null)
@@ -138,16 +141,28 @@ export default function App() {
                       onFocus={(id) => setFocusedDay((cur) => (cur === id ? null : id))}
                       onRemove={trip.removePlace}
                       onSetTime={trip.setTime}
+                      onHover={setHoveredId}
+                      photos={photos}
                       checkIn={i === 0}
                       checkOut={i === days.length - 1}
                       hotelName={BOOKING.hotelName}
                     />
                   ))}
-                  <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />
+                  <SavedShelf
+                    items={trip.saved}
+                    days={days}
+                    photos={photos}
+                    onAddToDay={handleAddToDay}
+                  />
                 </>
               )}
               {tab === 'saves' && (
-                <SavedShelf items={trip.saved} days={days} onAddToDay={handleAddToDay} />
+                <SavedShelf
+                  items={trip.saved}
+                  days={days}
+                  photos={photos}
+                  onAddToDay={handleAddToDay}
+                />
               )}}
               {tab === 'bookings' && <BookingsTab />}
 
@@ -192,8 +207,10 @@ export default function App() {
               places={mapPlaces}
               days={days}
               focusedDay={focusedDay}
+              hoveredId={hoveredId}
               onAddToDay={handleAddToDay}
               onSaveForLater={trip.savePlace}
+              onClearFocus={() => setFocusedDay(null)}
             />
           )}
         </div>

@@ -20,6 +20,8 @@
   --green-soft: #E6F4EC;
   --heart: #E5364B;
   --promo: #D6E4F0;
+  --highlight: #FF6A3D; /* itinerary→map hover highlight */
+  --highlight-dark: #C9461E;
 
   --danger: #B3261E;
   --warning: #9A6A00;
@@ -543,11 +545,26 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 1px 4px rgba(20, 30, 60, 0.18);
 }
 .map-pin.saved { border-color: var(--gold); }
-.map-pin.scheduled { border-color: var(--blue); }
+/* Booked / scheduled stops: light-blue fill, dark-blue border */
+.map-pin.scheduled {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}
 .map-pin.focused { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: var(--shadow-md); }
 .map-pin.hotel { background: var(--ink); color: #fff; border-color: var(--ink); }
 .map-pin.dim { opacity: 0.45; }
 .map-pin.dim:hover { opacity: 1; }
+/* Hover sync: itinerary card hover highlights its pin in a distinct colour */
+.map-pin.highlight {
+  background: var(--highlight) !important;
+  border-color: var(--highlight-dark) !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1.28);
+  box-shadow: var(--shadow-lg);
+  z-index: 12;
+}
 .map-pin.experience::after {
   content: ''; position: absolute; top: -3px; right: -3px;
   width: 9px; height: 9px; border-radius: 50%;

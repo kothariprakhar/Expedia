@@ -41,8 +41,10 @@ export default function TripHubMap({
   places = [],
   days = [],
   focusedDay = null,
+  hoveredId = null,
   onAddToDay,
-  onSaveForLater
+  onSaveForLater,
+  onClearFocus
 }) {
   const [map, setMap] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
@@ -54,6 +56,12 @@ export default function TripHubMap({
   const searchRef = useRef(null)
 
   const onLoad = useCallback((m) => setMap(m), [])
+
+  // Focusing a day is its own mode: clear any category selection so only that
+  // day's stops remain on the map.
+  useEffect(() => {
+    if (focusedDay) setSelectedCats(new Set())
+  }, [focusedDay])
 
   const centerKey = `${discoveryCenter.lat.toFixed(4)},${discoveryCenter.lng.toFixed(4)}`
 
@@ -118,7 +126,9 @@ export default function TripHubMap({
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
 
   // Union of the selected categories' results (deduped, excluding the trip).
+  // Hidden entirely while a day is focused.
   const discoveredVisible = useMemo(() => {
+    if (focusedDay) return []
     const seen = new Set()
     const out = []
     selectedCats.forEach((cat) => {
@@ -130,7 +140,7 @@ export default function TripHubMap({
       }
     })
     return out
-  }, [selectedCats, discoveredByCat, centerKey, tripIds])
+  }, [focusedDay, selectedCats, discoveredByCat, centerKey, tripIds])
 
   const focusedStops = useMemo(() => {
     if (!focusedDay) return []
@@ -180,13 +190,16 @@ export default function TripHubMap({
 
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
-  const toggleCat = (key) =>
+  const toggleCat = (key) => {
+    // Selecting a category exits day-focus mode (the two are mutually exclusive).
+    if (focusedDay) onClearFocus?.()
     setSelectedCats((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
       return next
     })
+  }
 
   return (
     <div className="map-pane">
@@ -230,7 +243,7 @@ export default function TripHubMap({
           <MapPin
             key={p.locationId}
             place={p}
-            className={`place discovered ${focusedDay ? 'dim' : ''}`}
+            className={`place discovered ${hoveredId === p.locationId ? 'highlight' : ''}`}
             emoji={categoryEmoji(p.category)}
             rating={ratingLabel(p)}
             onClick={() => setSelectedId(p.locationId)}
@@ -239,15 +252,16 @@ export default function TripHubMap({
 
         {places.map((p) => {
           if (!p.coordinates) return null
-          const isPlace = p.type === 'place'
           const inFocus = focusedDay && focusedIndex.has(p.locationId)
-          const dim = focusedDay && !inFocus
+          // In day-focus mode, show only that day's stops.
+          if (focusedDay && !inFocus) return null
+          const isPlace = p.type === 'place'
           const status = p.status === 'scheduled' ? 'scheduled' : 'saved'
           const cls = [
             isPlace ? 'place' : 'experience',
             status,
             inFocus ? 'focused' : '',
-            dim ? 'dim' : ''
+            hoveredId === p.locationId ? 'highlight' : ''
           ].join(' ')
           return (
             <MapPin
@@ -265,7 +279,7 @@ export default function TripHubMap({
         {hotel?.coordinates && (
           <MapPin
             place={hotel}
-            className="hotel"
+            className={`hotel ${hoveredId === '__hotel__' ? 'highlight' : ''}`}
             emoji="🛏️"
             rating="Stay"
             onClick={() => setSelectedId('__hotel__')}
