@@ -119,3 +119,18 @@ const RAW_SAVED = [
 
 export const SEED_ITINERARY = RAW_ITINERARY.map((p) => ({ ...p, type: EXPERIENCE }))
 export const SEED_SAVED = RAW_SAVED.map((p) => ({ ...p, type: EXPERIENCE }))
+
+// All bookable Expedia experiences. Rendered on the map as an always-on layer
+// (ignored by the category filter). Trip copies hide the catalogue entry when
+// added; removing a stop surfaces it again automatically.
+export const EXPERIENCE_CATALOG = [...RAW_ITINERARY, ...RAW_SAVED].map((p) => ({
+  locationId: p.locationId,
+  name: p.name,
+  category: p.category,
+  rating: p.rating,
+  reviews: p.reviews,
+  image: p.image,
+  coordinates: p.coordinates,
+  tags: p.tags || {},
+  type: EXPERIENCE
+}))

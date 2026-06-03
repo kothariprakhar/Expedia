@@ -21,6 +21,7 @@ import Toast from './components/Toast.jsx'
 import { useTrip } from './hooks/useTrip.js'
 import { usePlacePhotos } from './hooks/usePlacePhotos.js'
 import { BOOKING, getTripDays, formatDateRange } from './lib/booking.js'
+import { EXPERIENCE_CATALOG } from './lib/seed.js'
 
 const GOOGLE_LIBRARIES = ['places']
 
@@ -205,6 +206,7 @@ export default function App() {
               center={BOOKING.cityCoords}
               hotel={{ name: BOOKING.hotelName, coordinates: BOOKING.hotelCoords }}
               places={mapPlaces}
+              catalog={EXPERIENCE_CATALOG}
               days={days}
               photos={photos}
               focusedDay={focusedDay}

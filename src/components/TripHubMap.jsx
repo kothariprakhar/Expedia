@@ -45,6 +45,7 @@ export default function TripHubMap({
   center,
   hotel,
   places = [],
+  catalog = [],
   days = [],
   photos = {},
   focusedDay = null,
@@ -142,6 +143,13 @@ export default function TripHubMap({
 
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
 
+  // Expedia experiences not currently in the trip — always-on map layer,
+  // unaffected by category filters or focus mode.
+  const availableExperiences = useMemo(
+    () => catalog.filter((c) => c?.coordinates && !tripIds.has(c.locationId)),
+    [catalog, tripIds]
+  )
+
   // Union of the selected categories' results (deduped, excluding the trip).
   const discoveredVisible = useMemo(() => {
     const seen = new Set()
@@ -194,9 +202,9 @@ export default function TripHubMap({
   }, [map, places, hotel, center])
 
   const selected = useMemo(() => {
-    const all = [...places, ...discoveredVisible]
+    const all = [...places, ...discoveredVisible, ...availableExperiences]
     return all.find((p) => p.locationId === selectedId) || null
-  }, [places, discoveredVisible, selectedId])
+  }, [places, discoveredVisible, availableExperiences, selectedId])
 
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
@@ -252,6 +260,18 @@ export default function TripHubMap({
             key={p.locationId}
             place={p}
             className={`place discovered ${hoveredId === p.locationId ? 'highlight' : ''}`}
+            emoji={categoryEmoji(p.category)}
+            rating={ratingLabel(p)}
+            onOpen={() => openPin(p.locationId)}
+            onClose={scheduleClose}
+          />
+        ))}
+
+        {availableExperiences.map((p) => (
+          <MapPin
+            key={p.locationId}
+            place={p}
+            className={`experience available ${hoveredId === p.locationId ? 'highlight' : ''}`}
             emoji={categoryEmoji(p.category)}
             rating={ratingLabel(p)}
             onOpen={() => openPin(p.locationId)}
