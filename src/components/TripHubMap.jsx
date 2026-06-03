@@ -181,8 +181,13 @@ export default function TripHubMap({
     return m
   }, [focusedStops])
 
+  // Fit the viewport once on first map load. After that, never auto-refit —
+  // the user's pan/zoom is the source of truth (search & explicit clicks may
+  // still move the map; adding/removing places does not).
+  const didInitialFit = useRef(false)
   useEffect(() => {
-    if (!map || !window.google) return
+    if (!map || !window.google || didInitialFit.current) return
+    didInitialFit.current = true
     const pts = []
     places.forEach((p) => p.coordinates && pts.push(p.coordinates))
     if (hotel?.coordinates) pts.push(hotel.coordinates)
