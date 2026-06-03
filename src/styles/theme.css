@@ -544,12 +544,6 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600; color: var(--ink-2);
   box-shadow: 0 1px 4px rgba(20, 30, 60, 0.18);
 }
-/* Expedia experiences surfaced on the map but not yet added to the trip */
-.map-pin.experience.available {
-  background: #fff;
-  border-color: var(--blue);
-  color: var(--ink);
-}
 .map-pin.saved { border-color: var(--gold); }
 /* Booked / scheduled stops: light-blue fill, dark-blue border */
 .map-pin.scheduled {

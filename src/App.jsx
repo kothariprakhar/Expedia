@@ -21,7 +21,6 @@ import Toast from './components/Toast.jsx'
 import { useTrip } from './hooks/useTrip.js'
 import { usePlacePhotos } from './hooks/usePlacePhotos.js'
 import { BOOKING, getTripDays, formatDateRange } from './lib/booking.js'
-import { EXPERIENCE_CATALOG } from './lib/seed.js'
 
 const GOOGLE_LIBRARIES = ['places']
 
@@ -40,19 +39,7 @@ export default function App() {
 
   const days = useMemo(() => getTripDays(), [])
   const trip = useTrip()
-  // Fetch photos for the full catalogue so available experiences (not currently
-  // in the trip) still have a real image when surfaced on the map.
-  const photoSources = useMemo(() => {
-    const seen = new Set()
-    const out = []
-    for (const p of [...EXPERIENCE_CATALOG, ...trip.items]) {
-      if (seen.has(p.locationId)) continue
-      seen.add(p.locationId)
-      out.push(p)
-    }
-    return out
-  }, [trip.items])
-  const photos = usePlacePhotos(photoSources, mapsReady, BOOKING.city)
+  const photos = usePlacePhotos(trip.items, mapsReady, BOOKING.city)
 
   // Drag-to-resize the planning column / map split.
   const bodyRef = useRef(null)
@@ -176,7 +163,7 @@ export default function App() {
                   photos={photos}
                   onAddToDay={handleAddToDay}
                 />
-              )}}
+              )}
               {tab === 'bookings' && <BookingsTab />}
 
               <DragOverlay>
@@ -218,7 +205,6 @@ export default function App() {
               center={BOOKING.cityCoords}
               hotel={{ name: BOOKING.hotelName, coordinates: BOOKING.hotelCoords }}
               places={mapPlaces}
-              catalog={EXPERIENCE_CATALOG}
               days={days}
               photos={photos}
               focusedDay={focusedDay}
