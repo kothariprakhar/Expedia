@@ -181,18 +181,25 @@ export default function TripHubMap({
     return m
   }, [focusedStops])
 
-  // Fit the viewport once on first map load. After that, never auto-refit —
-  // the user's pan/zoom is the source of truth (search & explicit clicks may
-  // still move the map; adding/removing places does not).
+  // Fit the viewport ONCE — and only when the map first becomes available.
+  // After that the user's pan/zoom is the source of truth; adding/removing
+  // places never moves the map. Refs are used so the effect only depends on
+  // `map`, never on `places`/`hotel`/`center`, which would re-trigger fits.
   const didInitialFit = useRef(false)
+  const placesRef = useRef(places)
+  const hotelRef = useRef(hotel)
+  const centerRef = useRef(center)
+  placesRef.current = places
+  hotelRef.current = hotel
+  centerRef.current = center
   useEffect(() => {
     if (!map || !window.google || didInitialFit.current) return
     didInitialFit.current = true
     const pts = []
-    places.forEach((p) => p.coordinates && pts.push(p.coordinates))
-    if (hotel?.coordinates) pts.push(hotel.coordinates)
+    placesRef.current.forEach((p) => p.coordinates && pts.push(p.coordinates))
+    if (hotelRef.current?.coordinates) pts.push(hotelRef.current.coordinates)
     if (pts.length === 0) {
-      map.setCenter(center)
+      map.setCenter(centerRef.current)
       map.setZoom(13)
       return
     }
@@ -204,7 +211,7 @@ export default function TripHubMap({
     const bounds = new window.google.maps.LatLngBounds()
     pts.forEach((pt) => bounds.extend(pt))
     map.fitBounds(bounds, 90)
-  }, [map, places, hotel, center])
+  }, [map])
 
   const selected = useMemo(() => {
     const all = [...places, ...discoveredVisible, ...availableExperiences]
