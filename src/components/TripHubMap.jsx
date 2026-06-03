@@ -45,6 +45,7 @@ export default function TripHubMap({
   center,
   hotel,
   places = [],
+  catalog = [],
   days = [],
   photos = {},
   focusedDay = null,
@@ -142,6 +143,13 @@ export default function TripHubMap({
 
   const tripIds = useMemo(() => new Set(places.map((p) => p.locationId)), [places])
 
+  // Expedia experiences that aren't currently in the trip — kept as an always-on
+  // map layer, so removing one from the itinerary surfaces it here again.
+  const availableExperiences = useMemo(
+    () => catalog.filter((c) => !tripIds.has(c.locationId)),
+    [catalog, tripIds]
+  )
+
   // Union of the selected categories' results (deduped, excluding the trip).
   const discoveredVisible = useMemo(() => {
     const seen = new Set()
@@ -194,9 +202,9 @@ export default function TripHubMap({
   }, [map, places, hotel, center])
 
   const selected = useMemo(() => {
-    const all = [...places, ...discoveredVisible]
+    const all = [...places, ...discoveredVisible, ...availableExperiences]
     return all.find((p) => p.locationId === selectedId) || null
-  }, [places, discoveredVisible, selectedId])
+  }, [places, discoveredVisible, availableExperiences, selectedId])
 
   const selectedInTrip = selected ? tripIds.has(selected.locationId) : false
 
@@ -258,6 +266,22 @@ export default function TripHubMap({
             onClose={scheduleClose}
           />
         ))}
+
+        {/* Always-on Expedia experiences not yet in the trip */}
+        {availableExperiences.map((p) => {
+          if (!p.coordinates || !passesFilter(p.category)) return null
+          return (
+            <MapPin
+              key={p.locationId}
+              place={p}
+              className={`experience available ${hoveredId === p.locationId ? 'highlight' : ''}`}
+              emoji={categoryEmoji(p.category)}
+              rating={ratingLabel(p)}
+              onOpen={() => openPin(p.locationId)}
+              onClose={scheduleClose}
+            />
+          )
+        })}
 
         {places.map((p) => {
           if (!p.coordinates) return null
