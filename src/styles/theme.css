@@ -581,6 +581,17 @@ a { color: inherit; text-decoration: none; }
 }
 .gm-style .gm-style-iw-d { overflow: hidden !important; }
 .loc-card { font-family: var(--font); min-width: 220px; max-width: 280px; padding: 2px; }
+/* Image at the top of the popup — bleeds to the popup's rounded corners */
+.loc-card .loc-img {
+  margin: -14px -14px 12px;
+  height: 130px;
+  background: var(--group);
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+.loc-card .loc-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.loc-card .loc-img-ph { color: var(--subtle); }
 .loc-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--ink); }
 .loc-card .loc-meta { font-size: 13px; color: var(--muted); margin: 0 0 4px; }
 .loc-card .loc-address { font-size: 12px; color: var(--subtle); margin: 0 0 10px; }

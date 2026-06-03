@@ -46,6 +46,7 @@ export default function TripHubMap({
   hotel,
   places = [],
   days = [],
+  photos = {},
   focusedDay = null,
   hoveredId = null,
   onAddToDay,
@@ -301,6 +302,7 @@ export default function TripHubMap({
             options={{ pixelOffset: new window.google.maps.Size(0, -16) }}
           >
             <div className="loc-card" onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
+              <LocImage src={photos[selected.locationId] || selected.image} />
               <h3>{selected.name}</h3>
               <p className="loc-meta">
                 {selected.category}
@@ -349,6 +351,25 @@ export default function TripHubMap({
           </InfoWindow>
         )}
       </GoogleMap>
+    </div>
+  )
+}
+
+// Top-of-popup image: real photo when available, otherwise a soft placeholder.
+function LocImage({ src }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <div className="loc-img">
+      {src && !failed ? (
+        <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
+      ) : (
+        <span className="loc-img-ph" aria-hidden>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" stroke="currentColor" strokeWidth="1.6" />
+            <circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
+        </span>
+      )}
     </div>
   )
 }

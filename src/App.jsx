@@ -206,6 +206,7 @@ export default function App() {
               hotel={{ name: BOOKING.hotelName, coordinates: BOOKING.hotelCoords }}
               places={mapPlaces}
               days={days}
+              photos={photos}
               focusedDay={focusedDay}
               hoveredId={hoveredId}
               onAddToDay={handleAddToDay}
